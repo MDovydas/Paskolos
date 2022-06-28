@@ -2,6 +2,9 @@ import pandas
 import numpy
 import pickle
 import os
+import smtplib
+from email.message import EmailMessage
+from pwd import password, host_mail #siuntėjo ir slaptažodžio įkėlimas
 
 
 class Paskola():
@@ -50,7 +53,7 @@ class Paskola():
                    "Brendra moketina suma": self.menesio_imoku_sarasas}
 
         dataframe = pandas.DataFrame(paskola)
-        dataframe.index = numpy.arange(1, len(dataframe) +1)
+        dataframe.index = numpy.arange(1, len(dataframe) + 1)
         pandas.set_option('display.max_rows', None)
         pandas.set_option('display.max_columns', None)
         pandas.set_option('display.width', None)
@@ -59,11 +62,34 @@ class Paskola():
         dataframe.to_csv('last_table.csv')
 
 
+def send_mail(recipient):
+    email = EmailMessage()
+    email['from'] = 'CSV sender'
+    email['to'] = recipient
+    email['subject'] = 'New CSV table'
+
+    email.set_content('Loan table')
+    with open('last_table.csv', 'rb') as email_file:
+        content = email_file.read()
+        email.add_attachment(
+            content,
+            maintype='text/plain',
+            subtype='plain',
+            filename='last_table.csv')
+
+    with smtplib.SMTP(host='smtp.gmail.com', port=587) as smtp:
+        smtp.ehlo()
+        smtp.starttls()
+        smtp.login(host_mail, password) #siuntėjo duomenys
+        smtp.send_message(email)
+
+
 menu_options = {
     1: 'Įvesti paskolos duomenis',
     2: 'Parodyti paskolos informaciją',
     3: 'Parodyti paskolos mokėjimo grafiką',
-    4: 'Baigti darbą',
+    4: 'Išsiūsti paskutinę lentelę el paštu',
+    5: 'Baigti darbą',
 }
 if os.path.exists('data.pkl'):
     file = open('data.pkl', 'rb')
@@ -99,6 +125,11 @@ def option3():
         print('----------------')
 
 
+def option4():
+    recipient = input("Įveskite gavėjo el. pašto adresą")
+    send_mail(recipient)
+
+
 if __name__ == '__main__':
     while True:
         print_menu()
@@ -106,7 +137,7 @@ if __name__ == '__main__':
         try:
             option = int(input('Įveskite savo pasirinkimą: '))
         except:
-            print('Bloga įvestis, naudokit skaičius 1 - 4')
+            print('Bloga įvestis, naudokit skaičius 1 - 5')
 
         if option == 1:
             option1()
@@ -115,10 +146,12 @@ if __name__ == '__main__':
         elif option == 3:
             option3()
         elif option == 4:
+            option4()
+        elif option == 5:
             file = open('data.pkl', 'wb')
             pickle.dump(paskolu_sarasas, file)
             file.close()
             print('Baigta')
             exit()
         else:
-            print('Bloga įvestis, naudokit skaičius 1 - 4')
+            print('Bloga įvestis, naudokit skaičius 1 - 5')
